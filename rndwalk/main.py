@@ -1,4 +1,4 @@
-"""Simple MicroPython script which demonstrates uPyBot which is controlled using the pyboard"""
+"""Simple MicroPython script which demonstrates uPyBot controlled using the Micro Python Board (pyboard)"""
 # 25-Dec-2019 Initial version of the script created
 # 16-Jan-2020 Simple update robot class renamed to uPyBot
 
