@@ -16,32 +16,32 @@ class Beeper:
     """ This class controls simple buzzer"""
     BEEP_DEFAULT_DURATION_MS = const(200)
     def __init__(self, ctrl_pin):
-        self._ctrl_pin = ctrl_pin
+        self._ctrl_pin = ctrl_pin #pyboard pin used to control beeper
         self._ctrl_pin.low()
 
     def beep(self,duration):
-        self._ctrl_pin.high()
-        pyb.delay(duration)
-        self._ctrl_pin.low()
+        self._ctrl_pin.high() #turn beeper on
+        pyb.delay(duration)   #wait specified time
+        self._ctrl_pin.low()  #turn beeper off
 
 
 class Encoder:
     """This class control WSR-08834 encoder. One of the pyboard pin is used to count pulses (via an interrupt)"""
     def __init__(self, robot, int_pin):
         self._robot = robot  #reference to robot an encoder belongs into (is used to stop its motors) 
-        self._int_pin = int_pin
-        self._cnt_pulses = 0
-        self._stop_pulses = 0
-        self._last_pulses = 0
-        self._ext_int = ExtInt(int_pin, ExtInt.IRQ_RISING,  Pin.PULL_NONE, self.__int_handler)
+        self._int_pin = int_pin #pyboard pin used to count encoder pulses
+        self._cnt_pulses = 0   #counts pulses from encoder
+        self._stop_pulses = 0  #keeps destination number of pulses to stop motor when reached 
+        self._last_pulses = 0  #number of counted pulses during last check
+        self._ext_int = ExtInt(int_pin, ExtInt.IRQ_RISING,  Pin.PULL_NONE, self.__int_handler) #setup pin to trigger interrupt
 
-    def __int_handler(self,line):
+    def __int_handler(self,line): #encoder interrupt handler
         self._cnt_pulses += 1
-        if self._cnt_pulses >= self._stop_pulses:
+        if self._cnt_pulses >= self._stop_pulses: #when destination number of pulses reached stop robot's motor
             self._ext_int.disable()
             self._robot.stop()
             
-    def set_stop_pulses(self, stop_pulses):
+    def set_stop_pulses(self, stop_pulses): #setup destination number of pulses for the move
         self._cnt_pulses = 0
         self._last_pulses = 0
         self._stop_pulses = stop_pulses
@@ -54,7 +54,7 @@ class Encoder:
         return self._cnt_pulses
 
     def force_stop_cnt(self):
-        # change counters so movement end is forced
+        # change counters so movement end is forced to be reported by is_stopped method
         self._cnt_pulses = self._stop_pulses
 
     def reset(self):
@@ -62,16 +62,16 @@ class Encoder:
         self._stop_pulses = 0
         self._last_pulses = 0
 
-    def is_stopped(self):
+    def is_stopped(self): #check if movement ended i.e. if number of desired pulses reached
         if self._cnt_pulses >= self._stop_pulses:
             return True
         else:
             return False
 
-    def is_moving(self):
+    def is_moving(self): #check if uPyBot moving
         return not self.is_stopped()
 
-    def is_changing(self):
+    def is_changing(self): #check if number of pulses changed since last check
         changing = False
         if self._cnt_pulses != self._last_pulses:
             changing = True
@@ -82,9 +82,9 @@ class Encoder:
 class Motor:
     """This class control robot's motor through L298 driver"""
     def __init__(self,pinA, pinB, pwm_ch):
-        self._pinA = pinA
+        self._pinA = pinA #setup pins which control motor move direction
         self._pinB = pinB
-        self._pwm_ch = pwm_ch
+        self._pwm_ch = pwm_ch #setup pwm channel used to control motor speed
 
     def set_forward(self):
         self._pinA.high()
@@ -98,25 +98,25 @@ class Motor:
         self._pinA.low()
         self._pinB.low()
 
-    def set_speed(self,speed):
+    def set_speed(self,speed): #setup motor speed (which is pwm pulse width in precentage 0-100)
         self._pwm_ch.pulse_width_percent(speed)
 
 
 class UltraSonicSensor:
     """This class uses US HC-SR04 to make obstacle detection"""
     def __init__(self,pin_trig,pin_echo,us_tmr):
-        self._pin_trigger = pin_trig
+        self._pin_trigger = pin_trig #pin used to trigger sensor
         self._pin_trigger.low()
-        self._pin_echo = pin_echo
+        self._pin_echo = pin_echo #pin which detects sensor echo response
         self._us_tmr = us_tmr
     
-    def distance_to_obstacle_in_cm(self):
+    def distance_to_obstacle_in_cm(self): #trigger us sensor to measure distance to the closest obstacle
         start = 0
         stop = 0
         self._pin_trigger.low()
         self._us_tmr.counter(0)
 
-        # Send a 10us pulse.
+        # Send a 10us pulse - this triggers measurement sequence
         self._pin_trigger.high()
         pyb.udelay(10)
         self._pin_trigger.low()
@@ -130,12 +130,14 @@ class UltraSonicSensor:
             stop = self._us_tmr.counter()
         
         #calculate a distance in cm
-        dist_in_cm = ((stop - start) / 2) / 29
+        dist_in_cm = ((stop - start) / 2) / 29 #convert response pulse duration into distance
         return dist_in_cm
     
 
 class uPyBot:
     """This class represent uPyBot robot"""
+
+    #define various useful constants used by uPyBot programs
     LOW_SPEED = const(85)
     MID_SPEED = const(95)
     HIGH_SPEED = const(100)
@@ -197,7 +199,7 @@ class uPyBot:
         self._left_encoder.force_stop_cnt()
         self._right_encoder.force_stop_cnt()
 
-    def forward(self,pulses,speed):
+    def forward(self,pulses,speed): #move forward specified number of the encoder pulses with specified speed
         self._left_encoder.set_stop_pulses(pulses)
         self._right_encoder.set_stop_pulses(pulses)
         self._left_motor.set_speed(speed)
@@ -205,7 +207,7 @@ class uPyBot:
         self._left_motor.set_forward()
         self._right_motor.set_forward()
 
-    def backward(self,pulses,speed):
+    def backward(self,pulses,speed):#move backward specified number of the encoder pulses with specified speed
         self._left_encoder.set_stop_pulses(pulses)
         self._right_encoder.set_stop_pulses(pulses)
         self._left_motor.set_speed(speed)
@@ -213,7 +215,7 @@ class uPyBot:
         self._left_motor.set_backward()
         self._right_motor.set_backward()
 
-    def turn_left(self,pulses):
+    def turn_left(self,pulses): #turn specified number of pulses
         self._left_encoder.set_stop_pulses(pulses)
         self._right_encoder.set_stop_pulses(pulses)
         self._left_motor.set_speed(uPyBot.HIGH_SPEED)
@@ -267,7 +269,7 @@ class uPyBot:
     def step_back(self):
         self.backward(uPyBot.STEP_BACK_DISTANCE,uPyBot.MID_SPEED)
     
-    def is_stall(self):
+    def is_stall(self): #check if any encoder is not moving since last check what means motor stall if run
         if self._left_encoder.is_moving():
             if not self._left_encoder.is_changing():
                 return True
@@ -276,19 +278,19 @@ class uPyBot:
                 return True
         return False
 
-    def wait_until_move_done(self):
+    def wait_until_move_done(self): #when movement is triggered and ongoing check for obstacle and motor stall
         start = time.ticks_ms()
         while not self.is_stopped():
             if self._us.distance_to_obstacle_in_cm() < uPyBot.LOW_DISTANCE: #detect obstacle
                 self.stop()
                 return uPyBot.MOVE_OBSTACLE
-            if time.ticks_diff(time.ticks_ms(), start) > uPyBot.STALL_CHECK_TIME_MS: #detect motor blockage
+            if time.ticks_diff(time.ticks_ms(), start) > uPyBot.STALL_CHECK_TIME_MS: #detect motor blockage (encoder counted pulses during STALL_CHECK_TIME_MS should change)
                 start = time.ticks_ms()
                 if self.is_stall():
                     return uPyBot.MOVE_STALL
         return uPyBot.MOVE_OK
 
-    def rnd_move(self):
+    def rnd_move(self): #make rundom distance move forward
         distance = random.randint(uPyBot.MOVE_MIN,uPyBot.MOVE_MAX)
         self.forward(distance,uPyBot.HIGH_SPEED)
         result = self.wait_until_move_done()
@@ -315,7 +317,7 @@ class uPyBot:
         if result != uPyBot.MOVE_OK:
             self.step_back()
 
-    def rnd_turn(self,move_result):
+    def rnd_turn(self,move_result): #make rundom turn of random type but only if not an obstacle detected for which 90 deg turn is executed always
         turn_type = random.choice([uPyBot.SYMMETRIC_TURN,uPyBot.ASYMMETRIC_TURN])
         turn_direction = random.choice([uPyBot.LEFT_TURN,uPyBot.RIGHT_TURN])
         turn_angle = random.choice([uPyBot.TURN_90,uPyBot.TURN_180])
@@ -331,7 +333,7 @@ class uPyBot:
 #simple program to check various robot functions/movements
 print("Start random walk program") 
 robot = uPyBot()
-robot.beep()
+robot.beep()     #make short beep to signal robot start
 pyb.delay(2000)
 
 while True: 
