@@ -1,3 +1,9 @@
+#12-Sep-2021 I copied the library from https://www.pcbway.com/project/shareproject/Interfacing_Huskylens_with_Raspberry_Pi_Pico_1.html.
+#            It looks like original RPi library ported to the Micro Python (see below comment).
+#            I modified it changing to use UART 3 of the pyboard.
+
+
+#Library credits: RRoy https://community.dfrobot.com/makelog-310469.html
 import ubinascii
 import time
 from machine import UART,I2C,Pin
@@ -29,7 +35,7 @@ class HuskyLensLibrary:
         self.proto=proto
         self.address=0x32
         if(self.proto=="SERIAL"):
-            self.huskylensSer = UART(3,baudrate=9600,timeout=100)
+            self.huskylensSer = UART(3,baudrate=9600,timeout=100) #BKO: use pyboard UART 3
 #            self.huskylensSer = UART(2,baudrate=9600,rx=33,tx=32,timeout=100)
         else :
             self.huskylensSer = I2C(0, scl=Pin(9), sda=Pin(8), freq=100000)
